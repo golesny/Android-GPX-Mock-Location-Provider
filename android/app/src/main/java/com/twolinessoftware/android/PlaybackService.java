@@ -278,6 +278,7 @@ public class PlaybackService extends Service implements GpxSaxParserListener {
             return xml.toString();
 
         } catch (Exception e) {
+            Log.e(LOG, "Exception on reading file: " + e);
             broadcastError("Error in the GPX file, unable to read it");
         }
 
@@ -305,24 +306,33 @@ public class PlaybackService extends Service implements GpxSaxParserListener {
             try {
                 Date gpsDate = format.parse(item.getTime());
                 gpsPointTime = gpsDate.getTime();
+                Log.d(LOG, "Parsed timestamp:" + gpsDate + " input="+ item.getTime());
             } catch (ParseException e) {
                 Log.e(LOG, "Unable to parse time:" + item.getTime());
             }
 
-            if (firstGpsTime == 0)
+            if (firstGpsTime == 0) {
                 firstGpsTime = gpsPointTime;
-
+            }
 
             if (startTimeOffset == 0)
                 startTimeOffset = System.currentTimeMillis();
 
 
             delay = (gpsPointTime - firstGpsTime) + startTimeOffset;
+            Log.d(LOG, "Delay (ms) " + delay + " point in time = " + new Date(delay));
+            Log.d(LOG, "--> " + gpsPointTime);
+            Log.d(LOG, "--> " + firstGpsTime);
+            Log.d(LOG, "--> " + startTimeOffset);
         }
 
         if (lastPoint != null) {
-            item.setHeading(calculateHeadingFromPreviousPoint(lastPoint, item));
-            item.setSpeed(calculateSpeedFromPreviousPoint(lastPoint, item));
+            double heading = calculateHeadingFromPreviousPoint(lastPoint, item);
+            item.setHeading(heading);
+            double speed = calculateSpeedFromPreviousPoint(lastPoint, item);
+            Log.d(LOG, "Speed " + speed + " Heading " + heading);
+            item.setSpeed(speed);
+
         } else {
             item.setHeading(0.0);
             item.setSpeed(15.0);

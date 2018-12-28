@@ -15,8 +15,11 @@
  */
 package com.twolinessoftware.android;
 
+import android.util.Log;
+
 import com.twolinessoftware.android.framework.util.Logger;
 
+import java.util.Date;
 import java.util.LinkedList;
 
 public class SendLocationWorkerQueue {
@@ -88,15 +91,29 @@ public class SendLocationWorkerQueue {
 
                     synchronized (lock) {
                         try {
-                            lock.wait(TIME_BETWEEN_SENDS);
 
-                            Logger.i("SendLocationWorkerQueue.running - TIME_BETWEEN_SENDS : " + TIME_BETWEEN_SENDS, " - sent at time : " + System.currentTimeMillis());
+                            long waitMillis = worker.getSendTime() - System.currentTimeMillis();
+                            Log.d( "SendLocation/wait", "waiting "+waitMillis+" until " + new Date(worker.getSendTime()));
+
+                                if (waitMillis > 10) {
+                                    try {
+                                        lock.wait(waitMillis);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                } else {
+                                    Logger.d("SendLocationWorker.wait default value", "" + TIME_BETWEEN_SENDS);
+                                    lock.wait(TIME_BETWEEN_SENDS);
+                                }
+                            Logger.i("SendLocationWorkerQueue.running", " - sent at time : " + System.currentTimeMillis());
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
                     }
                     // Executing each worker in the current thread. Multiple threads NOT created.
                     worker.run();
+                } else {
+                    Log.i("SendLocationWorkerQueue", "Queue empty");
                 }
             }
         }

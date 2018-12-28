@@ -34,7 +34,7 @@ public class SendLocationWorker extends Worker {
 	private GpxTrackPoint point;
 	private String providerName;
 	private LocationManager mLocationManager;
-
+    private final Object lock = new Object();
 	private long sendTime;
 
 	public long getSendTime() {
@@ -70,7 +70,7 @@ public class SendLocationWorker extends Worker {
         loc.setBearing((float) point.getHeading());
         loc.setAccuracy(1.0f);
         loc.setSpeed((float) point.getSpeed());
-        loc.setAltitude(100.0);
+        loc.setAltitude(point.getEle());
 
 
 		// bk added
@@ -89,8 +89,7 @@ public class SendLocationWorker extends Worker {
 			e.printStackTrace();
 		}
 
-
-		Log.d("SendLocation", "Sending update for " + providerName);
+		Log.d("SendLocation", "Sending update for " + providerName + " loc " + loc);
 		mLocationManager.setTestProviderLocation(providerName, loc);
 
 

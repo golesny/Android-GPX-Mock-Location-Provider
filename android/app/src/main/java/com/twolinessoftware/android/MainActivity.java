@@ -22,6 +22,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.ActivityNotFoundException;
@@ -32,6 +33,7 @@ import android.content.DialogInterface.OnCancelListener;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
@@ -39,6 +41,8 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.provider.Settings;
+import android.support.v4.app.ActivityCompat;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -51,6 +55,7 @@ public class MainActivity extends Activity implements GpsPlaybackListener {
 
 	private static final int REQUEST_FILE = 1;
 
+	private static final String LOG = MainActivity.class.getSimpleName();
 	private static final String LOGNAME = "SimulatedGPSProvider.MainActivity";
 
 	private ServiceConnection connection;
@@ -72,6 +77,13 @@ public class MainActivity extends Activity implements GpsPlaybackListener {
 	private static final String APP_DATA_CACHE_FILENAME = "gpx_app_data_cache";
 	private static final String DEFAULT_PATH_TO_GPX_FILE = "/";
 
+	// Storage Permissions
+	private static final int REQUEST_EXTERNAL_STORAGE = 1;
+	private static String[] PERMISSIONS_STORAGE = {
+			Manifest.permission.READ_EXTERNAL_STORAGE,
+			Manifest.permission.WRITE_EXTERNAL_STORAGE
+	};
+
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -81,9 +93,9 @@ public class MainActivity extends Activity implements GpsPlaybackListener {
 		mEditText = (EditText) findViewById(R.id.file_path);
 
 		TextView mLabelEditText = (TextView) findViewById(R.id.label_edit_text_delay);
-		mLabelEditText.setText("Input Playback Delay (milliseconds): ");
+		mLabelEditText.setText("Playback Delay (ms): ");
 		mLabelEditText.setTextSize(17);
-		mLabelEditText.setTextColor(Color.WHITE);
+		mLabelEditText.setTextColor(Color.RED);
 
 
 		mEditTextDelay = (EditText) findViewById(R.id.editTextDelay);
@@ -164,12 +176,38 @@ public class MainActivity extends Activity implements GpsPlaybackListener {
 		stopPlaybackService();
 	}
 
+
+
+	/**
+	 * Checks if the app has permission to write to device storage
+	 *
+	 * If the app does not has permission then the user will be prompted to grant permissions
+	 *
+	 * @param activity
+	 */
+	public static void verifyStoragePermissions(Activity activity) {
+		Log.d(LOG, "verifyStoragePermission start");
+		// Check if we have write permission
+		int permission = ActivityCompat
+				.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+		Log.d(LOG, "verifyStoragePermission done");
+		if (permission != PackageManager.PERMISSION_GRANTED) {
+			// We don't have permission so prompt the user
+			ActivityCompat.requestPermissions(
+					activity,
+					PERMISSIONS_STORAGE,
+					REQUEST_EXTERNAL_STORAGE
+			);
+		}
+	}
+
 	/**
 	 * Opens the file manager to select a file to open.
 	 */
 	public void openFile() {
 
-		String fileName = getGpxFilePath();
+		verifyStoragePermissions(this);
+        String fileName = getGpxFilePath();
 
 		Intent intent = new Intent(FileManagerIntents.ACTION_PICK_FILE);
 
@@ -215,6 +253,7 @@ public class MainActivity extends Activity implements GpsPlaybackListener {
 			}
 
 		} catch (RemoteException e) {
+			Log.d(LOG, "Remote Exception");
 		}
 
 		Intent i = new Intent(getApplicationContext(), PlaybackService.class);
